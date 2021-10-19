@@ -1,3 +1,5 @@
+#COM-parser code
+
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
 import sys, threading, time
 import serial
