@@ -1,10 +1,15 @@
 #COM-parser code
 
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
 import sys, threading, time
 import serial
 import pyqtgraph as graphs
 import gui
+import numpy as np
+
+class Signals(QtCore.QObject):
+    updateGraphSignal = QtCore.pyqtSignal(int, float)
 
 class SerialUtils():
     def updateSerials():
@@ -70,13 +75,18 @@ class SerialListener():
 
     def listen(self):
         xCounter = 0
+
+        signals = Signals()
+        signals.updateGraphSignal.connect(self.main.graphWindow.updateGraph)
         
         while self.listening:
             if self.serialPort.inWaiting() > 0:
                 rxString = SerialUtils.getString(self.serialPort)
-
+                
                 if self.main.graphWindow != None:
-                    self.main.graphWindow.updateGraph(xCounter, int(rxString))
+                    # emit signal about updating graph to MAIN THREAD
+                    signals.updateGraphSignal.emit(xCounter, float(rxString))
+                    
                     xCounter += 1
             time.sleep(0.25)
 
@@ -109,7 +119,7 @@ class GraphWindow(QMainWindow):
         self.graph.addLegend()
 
         self.graph.showGrid(x=False, y=True)
-        self.graph.setYRange(0, 1024)
+        self.graph.setYRange(0, 1024, padding=0.45)
         self.graph.disableAutoRange(axis='y')
         
         self.graphLine = self.graph.plot(self.xLine, self.yLine, name='ADC value', pen=graphPen)
@@ -121,7 +131,7 @@ class GraphWindow(QMainWindow):
             
         self.xLine.append(x)
         self.yLine.append(y)
-        
+
         self.graphLine.setData(self.xLine, self.yLine)
 
 class ImportSettingsDialog(QDialog):
@@ -137,7 +147,9 @@ class Main(QMainWindow, gui.Ui_window):
         super().__init__()
         self.setupUi(self)
         self.guiInit()
+        # setup classes
         self.serialListener = SerialListener(self)
+        # windows classes
         self.graphWindow = None
     
     def guiInit(self):
@@ -151,7 +163,10 @@ class Main(QMainWindow, gui.Ui_window):
         self.serialSpeeds.addItems([ '9600', '38400', '115200' ])
 
     def graphWindowEvent(self):
-        self.graphWindow = GraphWindow()
+        if self.graphWindow == None:
+            # one instance in program
+            self.graphWindow = GraphWindow()
+        
         self.graphWindow.show()
 
     def importSettingsEvent(self):
