@@ -2,184 +2,82 @@
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
-import sys, threading, time
-import serial
-import pyqtgraph as graphs
-import gui
-import numpy as np
+import sys, threading, gui
+import serialImpl as impl
+import pyqtgraph as graph
+
+# Serial port settings
+SERIAL_DECODE_CHARSET = 'utf-8'
+SERIAL_TIMEOUT_SEC = 2
+
+# in dev...
+def log(*msgs, sep=' ', end='\n'):
+    print(*msgs, sep=sep, end=end)
 
 class Signals(QtCore.QObject):
-    updateGraphSignal = QtCore.pyqtSignal(int, float)
-
-class SerialUtils():
-    def updateSerials():
-        ports = []
-
-        platformName = sys.platform
-        
-        if platformName.startswith('win'):
-            ports = [ 'COM%s' % (i + 1) for i in range(256) ]
-        elif platformName.startswith('linux') or platformName.startswith('cygwin'):
-            ports = glob.glob('/dev/tty[A-Za-z]*')
-        else:
-            raise EnvironmentError('Unsupported platform')
-
-        available = [ "None" ]
-        for portName in ports:
-            try:
-                port = serial.Serial(portName)
-                port.close()
-                available.append(portName)
-            except (OSError, serial.SerialException):
-                pass
-        
-        return available
-
-    def getString(serialPort):
-        return serialPort.readline().decode('ASCII')
-
-class SerialListener():
-    def __init__(self, main):
-        self.main = main
-    
-    def connect(self):
-        self.serialPort = None
-        
-        try:
-            self.serialPort = serial.Serial(self.main.serialPorts.currentText(), self.main.serialSpeeds.currentText())
-            print('Connected successfully to %s!' % self.serialPort.name)
-
-            self.listening = True
-            self.listenThread = threading.Thread(None, self.listen)
-            self.listenThread.start()
-            
-            return 1
-        except Exception as e:
-            print(e)
-        
-        return 0
-
-    def close(self):
-        if self.serialPort == None:
-            print('Nothing to be closed! Serial port doesn\'t exists!')
-            return 0
-        
-        if self.serialPort.isOpen():
-            self.listening = False
-            
-            self.serialPort.close()
-            print('%s closed.' % self.serialPort.name)
-            
-            self.serialPort = None
-            return 1
-
-    def listen(self):
-        xCounter = 0
-
-        signals = Signals()
-        signals.updateGraphSignal.connect(self.main.graphWindow.updateGraph)
-        
-        while self.listening:
-            if self.serialPort.inWaiting() > 0:
-                rxString = SerialUtils.getString(self.serialPort)
-                
-                if self.main.graphWindow != None:
-                    # emit signal about updating graph to MAIN THREAD
-                    signals.updateGraphSignal.emit(xCounter, float(rxString))
-                    
-                    xCounter += 1
-            time.sleep(0.25)
-
-class GraphWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle('Graph')
-        print('Open graph window')
-        
-        self.graph = graphs.PlotWidget()
-        self.setCentralWidget(self.graph)
-
-        self.xLine = []
-        self.yLine = []
-
-        # plot data: x, y values
-        self.graph.setBackground('#000000')
-        color = (255, 0, 0)
-        lineWidth = 4
-        graphPen = graphs.mkPen(color, width=lineWidth)
-
-        self.graph.setTitle('Graph 1', color='#66EE88', size='20px')
-        labelStyle = {
-            'color' : '#00DDAA',
-            'font-size' : '15px'
-        }
-        self.graph.setLabel('left', 'ADC value', **labelStyle)
-        self.graph.setLabel('bottom', 'Time, ms', **labelStyle)
-
-        self.graph.addLegend()
-
-        self.graph.showGrid(x=False, y=True)
-        self.graph.setYRange(0, 1024, padding=0.45)
-        self.graph.disableAutoRange(axis='y')
-        
-        self.graphLine = self.graph.plot(self.xLine, self.yLine, name='ADC value', pen=graphPen)
-
-    def updateGraph(self, x, y):
-        if len(self.xLine) > 50:
-            self.xLine = self.xLine[1:]
-            self.yLine = self.yLine[1:]
-            
-        self.xLine.append(x)
-        self.yLine.append(y)
-
-        self.graphLine.setData(self.xLine, self.yLine)
-
-class ImportSettingsDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-
-        self.setWindowTitle('Import Settings')
-        self.resize(300, 200)
-        self.setModal(True)
+    log('Loaded signals')
+    updatePlotSignal = QtCore.pyqtSignal(int, str)
 
 class Main(QMainWindow, gui.Ui_window):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.guiInit()
-        # setup classes
-        self.serialListener = SerialListener(self)
-        # windows classes
-        self.graphWindow = None
-    
-    def guiInit(self):
-        # add events
-        self.updateSerialsAction.triggered.connect(self.updateSerialsEvent)
-        self.graphAction.triggered.connect(self.graphWindowEvent)
-        self.importSettingsAction.triggered.connect(self.importSettingsEvent)
-        self.connectButton.clicked.connect(self.connectSerialEvent)
-        # configure gui elements
-        self.updateSerialsEvent()
-        self.serialSpeeds.addItems([ '9600', '38400', '115200' ])
-
-    def graphWindowEvent(self):
-        if self.graphWindow == None:
-            # one instance in program
-            self.graphWindow = GraphWindow()
+        self.signals = Signals()
+        self.plotScreen = PlotScreen()
+        self.signals.updatePlotSignal.connect(self.plotScreen.updatePlot)
         
-        self.graphWindow.show()
-
-    def importSettingsEvent(self):
-        self.importSettingsDialog = ImportSettingsDialog()
-        self.importSettingsDialog.show()
-
-    def updateSerialsEvent(self):
+        self.currentPort = None
+        self.listenThread = None
+        self.xCounter = 0
+        
+        # add events
+        self.updateSerialsAction.triggered.connect(self.updateSerialSettingsEvent)
+        self.graphAction.triggered.connect(self.openPlotScreenEvent)
+        self.connectButton.clicked.connect(self.connectToSerialEvent)
+        self.serialPorts.currentTextChanged.connect(self.toggleConnectButtonEvent)
+        log('Added GUI events')
+        # initial update serial settings
+        self.updateSerialSettingsEvent()
+        log('Serial settings updated')
+    
+    def toggleConnectButtonEvent(self, newText):
+        self.connectButton.setEnabled(newText != 'None')
+    
+    def closeEvent(self, event):
+        if self.currentPort:
+            self.closeSerialEvent()
+    
+    def handleData(self, dataStr):
+        # any handle of data (filter, write to console/file/plot...)
+        self.signals.updatePlotSignal.emit(self.xCounter, dataStr)
+        self.xCounter += 1;
+        pass
+    
+    def listenPort(self):
+        log('Start listening %s' % self.currentPort.name)
+        while self.portListening:
+            if self.currentPort.inWaiting() > 0:
+                self.handleData(impl.getString(
+                                    self.currentPort,
+                                    SERIAL_DECODE_CHARSET))
+    
+    def updateSerialSettingsEvent(self):
         self.serialPorts.clear()
-        self.serialPorts.addItems(SerialUtils.updateSerials())
+        self.serialSpeeds.clear()
+        self.serialPorts.addItems(impl.getAvailableSerials())
+        self.serialSpeeds.addItems(impl.getAvailableSpeeds())
 
-    def connectSerialEvent(self):
-        if self.serialListener.connect():
-
+    def connectToSerialEvent(self):
+        self.currentPort = impl.connectTo(
+                                self.serialPorts.currentText(),
+                                self.serialSpeeds.currentText(),
+                                SERIAL_TIMEOUT_SEC)
+        
+        if self.currentPort:
+            self.portListening = True
+            self.listenThread = threading.Thread(None, self.listenPort)
+            self.listenThread.start()
+            
             # update button state connect->close
             button = self.connectButton
             button.setText('Close')
@@ -188,11 +86,14 @@ class Main(QMainWindow, gui.Ui_window):
             connectStatus.setStyleSheet('color: rgb(0, 220, 0);')
             # swap button events
             action = self.connectButton.clicked
-            action.disconnect(self.connectSerialEvent)
+            action.disconnect(self.connectToSerialEvent)
             action.connect(self.closeSerialEvent)
 
     def closeSerialEvent(self):
-        if self.serialListener.close():
+        self.portListening = False
+        log('Stop listening %s' % self.currentPort.name)
+        if impl.close(self.currentPort):
+            self.currentPort = None
             
             # update button state close->connect
             button = self.connectButton
@@ -203,8 +104,79 @@ class Main(QMainWindow, gui.Ui_window):
             # swap button events
             action = self.connectButton.clicked
             action.disconnect(self.closeSerialEvent)
-            action.connect(self.connectSerialEvent)
+            action.connect(self.connectToSerialEvent)
+
+    def openPlotScreenEvent(self):
+        self.plotScreen.show()
+        log('Display plot screen')
+
+import random as rand
+
+class PlotScreen(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.flag = False
+        self.graphs = []
+        self.x = []
+        self.y = []
+        self.arr = []
+        
+        self.setWindowTitle('New plot')
+        log('Loaded plot screen')
+
+        self.graph = graph.PlotWidget()
+        self.setCentralWidget(self.graph)
+
+        self.graph.setBackground('#000000')
+        self.graph.setTitle('New graph', color='#66EE88', size='20px')
+        labelStyle = {
+            'color': '#00DDAA',
+            'font-size': '15px'
+        }
+        self.graph.setLabel('left', 'Row', **labelStyle)
+        self.graph.setLabel('bottom', 'Column', **labelStyle)
+        self.graph.addLegend()
+
+        self.graph.showGrid(x=False, y=True)
+        self.graph.setYRange(0, 256, padding=0)
+
+    def closeEvent(self, event):
+        log('Plot screen closed')
+
+    def plot(self, x, y, name, color):
+        pen = graph.mkPen(color=color, width=4)
+        return self.graph.plot(x, y, name=name, pen=pen)
     
+    def updatePlot(self, xCounter, serialString):
+        valArr = serialString.split(',')
+        
+        if self.flag == False:
+            for val in valArr:
+                color = (rand.randint(64, 255),
+                         rand.randint(64, 255),
+                         rand.randint(64, 255))
+                self.graphs.append(self.plot([], [], val, color))
+                self.x.append([])
+                self.y.append([])
+            self.flag = True
+            log('Created %d plots' % len(self.graphs))
+        
+        for i in range(len(self.graphs)):
+            if len(self.y[i]) >= 300:
+                self.x[i] = self.x[i][1:]
+                self.y[i] = self.y[i][1:]
+
+            try:
+                valArr[i] = float(valArr[i])
+                self.x[i].append(xCounter)
+                self.y[i].append(valArr[i])
+            except ValueError as e:
+                pass
+
+            self.graphs[i].setData(self.x[i], self.y[i])
+                
+        #log('plot', serialString, end='')
+
 app = QApplication(sys.argv)
 window = Main()
 window.show()
