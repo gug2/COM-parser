@@ -1,4 +1,4 @@
 # COM-parser
-![image](https://user-images.githubusercontent.com/19577359/157400638-cf68cf84-6b46-4547-bbe4-b6257dfad1cf.png)
-![image](https://user-images.githubusercontent.com/19577359/157400690-0507cace-3f20-42cd-812b-a570904a07ff.png)
+![image](https://user-images.githubusercontent.com/19577359/157400905-9db186d7-82f9-461d-9b93-ed0592a47320.png)
+![image](https://user-images.githubusercontent.com/19577359/157400845-0edd36af-3532-4d4a-b899-0c0fe2c27892.png)
 ![ezgif com-gif-maker](https://user-images.githubusercontent.com/19577359/157400712-64dcc8f0-4822-4444-a143-e7025d447bbd.gif)
