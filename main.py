@@ -13,13 +13,14 @@ import time, datetime
 SERIAL_DECODE_CHARSET = 'utf-8'
 SERIAL_TIMEOUT_SEC = 2
 SERIAL_PACKET_SIZE = 60
-ENABLED_PLOTS = [1, 3, 4, 6]
-ENABLED_PLOTS_NAMES = ['STLM temp', 'MS alt', 'BMP alt', 'photo']
+ENABLED_PLOTS = [1, 12, 13, 14]#[1, 3, 4, 6]
+ENABLED_PLOTS_NAMES = ['Time', 'Ax', 'Ay', 'Az']#['STLM temp', 'MS alt', 'BMP alt', 'photo']
 
 globalSerialBuffer = []
 
 def log(*msgs, sep=' ', end='\n'):
-    print('[main.py]', *msgs, sep=sep, end=end)
+    #print('[main.py]', *msgs, sep=sep, end=end)
+    pass
 
 def ms(ns):
     return ns / 1000 / 1000
@@ -94,7 +95,7 @@ class Main(QMainWindow, gui.Ui_window):
 #TODO!!!  -- запись в лог всех декодированных данных --
                 LOG_TO_FILE_START_NS = time.time_ns()
                 with open('last_log.csv', 'a') as logFile:
-                    logFile.write(str(datetime.datetime.now()) + '-> ' + toSend + '\n')
+                    logFile.write(str(datetime.datetime.now()) + ',,' + toSend + '\n')
                 LOG_TO_FILE_TIME_NS = time.time_ns() - LOG_TO_FILE_START_NS
                 #log('запись в файл[ms]', ms(LOG_TO_FILE_TIME_NS))
 #TODO!!!
@@ -277,7 +278,7 @@ class PlotScreen(QMainWindow):
             #    self.x = self.x[1:]
 
             # x axis - received time in ms
-            self.x.append(int(dataArray[0]))
+            self.x.append(float(dataArray[0]))
 
             # add gps info
             labelStyle = {
@@ -299,6 +300,10 @@ class PlotScreen(QMainWindow):
                     self.y[i].append(self.y[i][-1])
                 
                 self.plots[i].dataObject.setData(self.x, self.y[i])
+                if len(self.x) >= 100:
+                    self.plots[i].plotObject.setXRange(self.x[-100], self.x[-1])
+                else:
+                    self.plots[i].plotObject.setXRange(self.x[0], self.x[-1])
 
         # пересоздаем графики
         if self.isPlotsCreated == False:

@@ -1,7 +1,8 @@
 import time
 
 def log(*msgs, sep=' ', end='\n'):
-    print('[packetDecoder.py]', *msgs, sep=sep, end=end)
+    #print('[packetDecoder.py]', *msgs, sep=sep, end=end)
+    pass
 
 def ms(ns):
     return ns / 1000 / 1000
@@ -92,7 +93,9 @@ class PacketDecoder():
         # декодирование пакета
         # loop start tick
         if n == 0:
-            decodedStr += str(self.bytesToU32(encodedBytes, offset) * 250)
+            res = self.bytesToU32(encodedBytes, offset)
+            res /= 1000.0
+            decodedStr += str(res)
             decodedStr += self.delimiter
             offset += 4
             n = 1
