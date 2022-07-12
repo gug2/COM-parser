@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>500</height>
+    <height>269</height>
    </rect>
   </property>
   <property name="mouseTracking">
@@ -29,11 +29,11 @@
       <x>5</x>
       <y>5</y>
       <width>490</width>
-      <height>81</height>
+      <height>80</height>
      </rect>
     </property>
     <property name="title">
-     <string>Configure serial port</string>
+     <string>Конфигурация COM порта</string>
     </property>
     <property name="flat">
      <bool>false</bool>
@@ -54,7 +54,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Connect</string>
+      <string>Подкл.</string>
      </property>
      <property name="checkable">
       <bool>false</bool>
@@ -96,6 +96,9 @@
      </property>
     </widget>
     <widget class="QLineEdit" name="serialIn">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -126,7 +129,7 @@
       <rect>
        <x>260</x>
        <y>20</y>
-       <width>221</width>
+       <width>70</width>
        <height>22</height>
       </rect>
      </property>
@@ -137,7 +140,7 @@
       <string notr="true">color: rgb(220, 0, 0);</string>
      </property>
      <property name="text">
-      <string>Closed</string>
+      <string>Закрыт</string>
      </property>
      <property name="textFormat">
       <enum>Qt::PlainText</enum>
@@ -152,6 +155,22 @@
       <number>0</number>
      </property>
     </widget>
+    <widget class="QLabel" name="rxCounterValue">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>20</y>
+       <width>70</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: green;</string>
+     </property>
+     <property name="text">
+      <string>RX: 0</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="importSettingsGroup">
     <property name="geometry">
@@ -159,23 +178,23 @@
       <x>5</x>
       <y>90</y>
       <width>490</width>
-      <height>405</height>
+      <height>80</height>
      </rect>
     </property>
     <property name="title">
-     <string>Import settings</string>
+     <string>Прием данных</string>
     </property>
     <property name="flat">
      <bool>true</bool>
     </property>
-    <widget class="QLineEdit" name="lineEdit">
+    <widget class="QLineEdit" name="delimiterValue">
      <property name="enabled">
       <bool>false</bool>
      </property>
      <property name="geometry">
       <rect>
-       <x>60</x>
-       <y>30</y>
+       <x>80</x>
+       <y>25</y>
        <width>113</width>
        <height>20</height>
       </rect>
@@ -184,33 +203,33 @@
       <string>,</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="delimiterLabel">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>30</y>
-       <width>47</width>
+       <y>27</y>
+       <width>70</width>
        <height>13</height>
       </rect>
      </property>
      <property name="text">
-      <string>Delimiter</string>
+      <string>Разделитель</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton">
+    <widget class="QPushButton" name="delimiterSave">
      <property name="enabled">
       <bool>false</bool>
      </property>
      <property name="geometry">
       <rect>
        <x>410</x>
-       <y>20</y>
+       <y>25</y>
        <width>75</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>Save</string>
+      <string>Сохранить</string>
      </property>
      <property name="autoDefault">
       <bool>false</bool>
@@ -219,17 +238,107 @@
       <bool>false</bool>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_2">
+    <widget class="QPushButton" name="delimiterEdit">
      <property name="geometry">
       <rect>
        <x>320</x>
-       <y>20</y>
+       <y>25</y>
        <width>75</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>Edit</string>
+      <string>Изменить</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="delimiterWarningMsg">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>471</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: orange</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::AutoText</enum>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="errorsGroup">
+    <property name="geometry">
+     <rect>
+      <x>5</x>
+      <y>170</y>
+      <width>490</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Статус</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="checked">
+     <bool>false</bool>
+    </property>
+    <widget class="QLabel" name="errorMsg">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>15</y>
+       <width>470</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string/>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: orange</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::AutoText</enum>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>false</bool>
      </property>
     </widget>
    </widget>
@@ -251,7 +360,7 @@
      <bool>false</bool>
     </property>
     <property name="title">
-     <string>COM-ports</string>
+     <string>COM-порты</string>
     </property>
     <property name="toolTipsVisible">
      <bool>false</bool>
@@ -260,7 +369,7 @@
    </widget>
    <widget class="QMenu" name="view">
     <property name="title">
-     <string>View</string>
+     <string>Вид</string>
     </property>
     <addaction name="graphAction"/>
    </widget>
@@ -272,7 +381,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Update serials - F5</string>
+    <string>Обновить - F5</string>
    </property>
   </action>
   <action name="action">
@@ -296,7 +405,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Graph - F1</string>
+    <string>График - F1</string>
    </property>
   </action>
  </widget>
